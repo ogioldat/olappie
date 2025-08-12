@@ -1,54 +1,31 @@
-package olappie
+package core
 
 import (
-	"unsafe"
-
 	"github.com/ogioldat/olappie/algo"
 )
 
-type sparseIndexKey string
-type sparseIndexOffset int
-type sparseIndex map[sparseIndexKey]sparseIndexOffset
-
-type memTable interface {
-	Write(string, []byte) error
-	Flush() ([]SSTable, error)
-	Size() int
-}
-
-type RBMemTable struct {
-	tree *algo.RBTree
-}
-
-func (r *RBMemTable) Write(key string, value []byte) error {
-	return nil
-}
-
-func (r *RBMemTable) Flush() ([]SSTable, error) {
-	return nil, nil
-}
-
-func (r *RBMemTable) Size() int {
-	return int(unsafe.Sizeof(*r.tree))
-}
-
 type LSMTStorage struct {
 	memTableThreshold int
-	sparseIndex       sparseIndex
-	memTable          memTable
+	sparseIndex       SparseIndex
+	memTable          MemTable
 	ssTables          []SSTable
 	wal               *WAL
 }
 
 func NewLSMTStorage(memTableThreshold int) *LSMTStorage {
+	wal, err := NewWAL()
+	if err != nil {
+		panic("failed to create WAL")
+	}
+
 	return &LSMTStorage{
 		memTableThreshold: memTableThreshold,
-		sparseIndex:       make(sparseIndex),
+		sparseIndex:       make(SparseIndex),
 		memTable: &RBMemTable{
 			tree: algo.NewRBTree(),
 		},
 		ssTables: []SSTable{},
-		wal:      NewWAL(),
+		wal:      wal,
 	}
 }
 
@@ -62,8 +39,9 @@ func (s *LSMTStorage) Write(key string, value string) error {
 	}
 
 	if s.memTableThreshold < s.memTable.Size() {
-		_, err := s.memTable.Flush()
-		if err != nil {
+		ssTable := NewSSTable()
+
+		if err := s.memTable.Flush(ssTable); err != nil {
 			return err
 		}
 	}

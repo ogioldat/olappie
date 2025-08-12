@@ -7,10 +7,16 @@ const (
 
 type Node struct {
 	Key    int
+	Value  int
 	Color  bool
 	Left   *Node
 	Right  *Node
 	Parent *Node
+}
+
+type KVPair struct {
+	Key   int
+	Value int
 }
 
 type RBTree struct {
@@ -62,7 +68,7 @@ func (t *RBTree) fixInsert(n *Node) {
 	for n != t.Root && n.Parent.Color == RED {
 		if n.Parent == n.Parent.Parent.Left {
 			uncle := n.Parent.Parent.Right
-			if uncle != nil && uncle.Color == RED {
+			if uncle != nil && uncle.Color {
 				// Case 1: Uncle is red
 				n.Parent.Color = BLACK
 				uncle.Color = BLACK
@@ -146,10 +152,21 @@ func NewRBTree() *RBTree {
 	}
 }
 
-func InorderTraversal(n *Node, visit func(*Node)) {
-	if n != nil {
-		InorderTraversal(n.Left, visit)
-		visit(n)
-		InorderTraversal(n.Right, visit)
+func (node *Node) inorderTraversal(sortedOut chan<- KVPair) {
+	if node != nil {
+		node.Left.inorderTraversal(sortedOut)
+		sortedOut <- KVPair{Key: node.Key, Value: node.Value}
+		node.Right.inorderTraversal(sortedOut)
 	}
+}
+
+func (tree *RBTree) StreamInorderTraversal() <-chan KVPair {
+	sortedOut := make(chan KVPair)
+
+	go func() {
+		defer close(sortedOut)
+		tree.Root.inorderTraversal(sortedOut)
+	}()
+
+	return sortedOut
 }

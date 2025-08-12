@@ -1,6 +1,9 @@
 {
     "cSpell.words": [
+        "Inorder",
         "LSMT",
-        "olappie"
+        "memtable",
+        "olappie",
+        "SSTABLE"
     ]
 }

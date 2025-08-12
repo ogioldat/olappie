@@ -1,4 +1,4 @@
-package olappie
+package core
 
 import (
 	"fmt"
@@ -17,10 +17,10 @@ func (w *WAL) Log(key, value string) error {
 	return err
 }
 
-func NewWAL() *WAL {
+func NewWAL() (*WAL, error) {
 	file, err := os.OpenFile(WAL_PATH, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		panic(fmt.Sprintf("failed to open WAL file: %v", err))
+		return nil, err
 	}
-	return &WAL{file: file}
+	return &WAL{file: file}, nil
 }
