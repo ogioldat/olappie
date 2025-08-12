@@ -3,14 +3,12 @@ package olappie
 import (
 	"unsafe"
 
-	"github.com/ogioldat/olappie/olappie/algo"
+	"github.com/ogioldat/olappie/algo"
 )
 
 type sparseIndexKey string
 type sparseIndexOffset int
 type sparseIndex map[sparseIndexKey]sparseIndexOffset
-
-type SSTable struct{}
 
 type memTable interface {
 	Write(string, []byte) error
@@ -39,6 +37,7 @@ type LSMTStorage struct {
 	sparseIndex       sparseIndex
 	memTable          memTable
 	ssTables          []SSTable
+	wal               *WAL
 }
 
 func NewLSMTStorage(memTableThreshold int) *LSMTStorage {
@@ -49,12 +48,16 @@ func NewLSMTStorage(memTableThreshold int) *LSMTStorage {
 			tree: algo.NewRBTree(),
 		},
 		ssTables: []SSTable{},
+		wal:      NewWAL(),
 	}
 }
 
 func (s *LSMTStorage) Write(key string, value string) error {
-	err := s.memTable.Write(key, []byte(value))
-	if err != nil {
+	if err := s.wal.Log(key, value); err != nil {
+		return err
+	}
+
+	if err := s.memTable.Write(key, []byte(value)); err != nil {
 		return err
 	}
 
@@ -66,4 +69,8 @@ func (s *LSMTStorage) Write(key string, value string) error {
 	}
 
 	return nil
+}
+
+func (s *LSMTStorage) Compact(key string) ([]byte, error) {
+	return nil, nil
 }

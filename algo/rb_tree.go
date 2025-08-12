@@ -145,3 +145,11 @@ func NewRBTree() *RBTree {
 		NodesCount: 0,
 	}
 }
+
+func InorderTraversal(n *Node, visit func(*Node)) {
+	if n != nil {
+		InorderTraversal(n.Left, visit)
+		visit(n)
+		InorderTraversal(n.Right, visit)
+	}
+}
