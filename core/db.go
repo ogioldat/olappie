@@ -1,14 +1,10 @@
 package core
 
-import (
-	"github.com/ogioldat/olappie/algo"
-)
-
 type LSMTStorage struct {
-	memTableThreshold int
+	memTableThreshold int // Max size of entries in the memtable before flushing to SSTables
 	sparseIndex       SparseIndex
 	memTable          MemTable
-	ssTables          []SSTable
+	ssTableManager    *SSTableManager
 	wal               *WAL
 }
 
@@ -21,11 +17,9 @@ func NewLSMTStorage(memTableThreshold int) *LSMTStorage {
 	return &LSMTStorage{
 		memTableThreshold: memTableThreshold,
 		sparseIndex:       make(SparseIndex),
-		memTable: &RBMemTable{
-			tree: algo.NewRBTree(),
-		},
-		ssTables: []SSTable{},
-		wal:      wal,
+		memTable:          NewRBMemTable(),
+		ssTableManager:    NewSSTableManager(),
+		wal:               wal,
 	}
 }
 
@@ -39,9 +33,8 @@ func (s *LSMTStorage) Write(key string, value string) error {
 	}
 
 	if s.memTableThreshold < s.memTable.Size() {
-		ssTable := NewSSTable()
-
-		if err := s.memTable.Flush(ssTable); err != nil {
+		sstable := s.ssTableManager.AddSSTable()
+		if err := s.memTable.Flush(sstable); err != nil {
 			return err
 		}
 	}

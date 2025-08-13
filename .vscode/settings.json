@@ -4,6 +4,7 @@
         "LSMT",
         "memtable",
         "olappie",
-        "SSTABLE"
+        "SSTABLE",
+        "sstables"
     ]
 }
