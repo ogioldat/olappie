@@ -32,8 +32,6 @@ func TestAddManySSTables(t *testing.T) {
 func TestSSTableWrite(t *testing.T) {
 	tempDir := t.TempDir()
 
-	fmt.Println("Using temporary directory:", tempDir)
-
 	manager := NewSSTableManager(WithSSTableDir(tempDir))
 	manager.AddSSTable()
 	manager.AddSSTable()
@@ -42,8 +40,6 @@ func TestSSTableWrite(t *testing.T) {
 	data := []byte("Hello, SSTable!")
 
 	_, err := sstable.Write(data)
-
-	fmt.Println(err)
 
 	filepath := fmt.Sprintf("%s/level_0/0001.sst", tempDir)
 

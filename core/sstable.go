@@ -22,15 +22,6 @@ func (s *SSTable) Write(p []byte) (n int, err error) {
 		return 0, err
 	}
 
-	files, err := os.ReadDir(dir)
-	if err != nil {
-		return 0, err
-	}
-	fmt.Println("Files in directory:", dir, files)
-	for _, f := range files {
-		fmt.Println("LS FILE", f.Name())
-	}
-
 	file, err := os.Create(s.path)
 	if err != nil {
 		return 0, err
