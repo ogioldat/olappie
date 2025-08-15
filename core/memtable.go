@@ -32,6 +32,8 @@ func (r *RBMemTable) Flush(w io.Writer) error {
 		kvStr := fmt.Sprint(kv.Key) + ":" + fmt.Sprint(kv.Value) + "\n"
 		w.Write([]byte(kvStr))
 	}
+	r.tree = algo.NewRBTree()
+
 	return nil
 }
 
