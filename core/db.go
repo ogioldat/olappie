@@ -2,6 +2,7 @@ package core
 
 type LSMTStorage struct {
 	memTableThreshold int // Max size of entries in the memtable before flushing to SSTables
+	seqNumber         int
 	sparseIndex       SparseIndex
 	memTable          MemTable
 	ssTableManager    *SSTableManager
@@ -16,11 +17,16 @@ func NewLSMTStorage(memTableThreshold int) *LSMTStorage {
 
 	return &LSMTStorage{
 		memTableThreshold: memTableThreshold,
-		sparseIndex:       make(SparseIndex),
+		seqNumber:         0,
+		sparseIndex:       NewSparseIndex(),
 		memTable:          NewRBMemTable(),
 		ssTableManager:    NewSSTableManager(),
 		wal:               wal,
 	}
+}
+
+func (s *LSMTStorage) updateSeq() {
+	s.seqNumber++
 }
 
 func (s *LSMTStorage) Write(key string, value string) error {
@@ -32,6 +38,10 @@ func (s *LSMTStorage) Write(key string, value string) error {
 		return err
 	}
 
+	// s.sparseIndex.Update(key, )
+	s.updateSeq()
+
+	// TODO: Move as a background task
 	if s.memTableThreshold < s.memTable.Size() {
 		sstable := s.ssTableManager.AddSSTable()
 		if err := s.memTable.Flush(sstable); err != nil {
