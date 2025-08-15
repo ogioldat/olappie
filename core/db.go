@@ -7,6 +7,7 @@ type LSMTStorage struct {
 	memTable          MemTable
 	ssTableManager    *SSTableManager
 	wal               *WAL
+	metadata          *Metadata
 }
 
 func NewLSMTStorage(memTableThreshold int) *LSMTStorage {
@@ -22,6 +23,7 @@ func NewLSMTStorage(memTableThreshold int) *LSMTStorage {
 		memTable:          NewRBMemTable(),
 		ssTableManager:    NewSSTableManager(),
 		wal:               wal,
+		metadata:          NewMetadata(),
 	}
 }
 
