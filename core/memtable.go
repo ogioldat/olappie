@@ -11,6 +11,8 @@ type MemTable interface {
 	Write(string, []byte) error
 	Flush(io.Writer) error
 	Size() int
+	Last() *algo.KVPair
+	First() *algo.KVPair
 }
 
 type RBMemTable struct {
@@ -40,4 +42,12 @@ func (r *RBMemTable) Flush(w io.Writer) error {
 func (r *RBMemTable) Size() int {
 	// TODO: Implement size calculation
 	return 0
+}
+
+func (r *RBMemTable) Last() *algo.KVPair {
+	return r.tree.Last()
+}
+
+func (r *RBMemTable) First() *algo.KVPair {
+	return r.tree.First()
 }

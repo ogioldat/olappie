@@ -23,8 +23,8 @@ func NewMetadata() *Metadata {
 	}
 }
 
-func (m *Metadata) SetSSTable(key string, minKey string, maxKey string) {
-	m.sstables[key] = sstableEntry{
+func (m *Metadata) Set(tableName string, minKey string, maxKey string) {
+	m.sstables[tableName] = sstableEntry{
 		minKey: minKey,
 		maxKey: maxKey,
 	}
@@ -66,7 +66,7 @@ func (m *Metadata) Load() error {
 		if len(parts) != 3 {
 			continue
 		}
-		metadata.SetSSTable(parts[0], parts[1], parts[2])
+		metadata.Set(parts[0], parts[1], parts[2])
 	}
 
 	m.sstables = metadata.sstables

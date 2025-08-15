@@ -13,8 +13,8 @@ func TestAddSSTable(t *testing.T) {
 	manager.AddSSTable()
 
 	assert.Equal(t, 1, len(manager.sstables))
-	assert.Equal(t, "0001", manager.sstables[0][0].name)
-	assert.Equal(t, 0, manager.sstables[0][0].level)
+	assert.Equal(t, "0001", manager.sstables[0][0].Name)
+	assert.Equal(t, 0, manager.sstables[0][0].Level)
 	assert.Len(t, manager.sstables, 1)
 }
 

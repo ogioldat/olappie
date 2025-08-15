@@ -49,6 +49,11 @@ func (s *LSMTStorage) Write(key string, value string) error {
 		if err := s.memTable.Flush(sstable); err != nil {
 			return err
 		}
+
+		memtableHead := s.memTable.First()
+		memtableTail := s.memTable.Last()
+
+		s.metadata.Set(sstable.Name, memtableHead.Key, memtableTail.Key)
 	}
 
 	return nil

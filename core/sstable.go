@@ -10,9 +10,9 @@ const DEFAULT_SSTABLE_DIR = "../data/sstables"
 const DEFAULT_SSTABLE_SIZE = 1024 * 1024 // 1 MB
 
 type SSTable struct {
-	size  int
-	level int
-	name  string
+	Size  int
+	Level int
+	Name  string
 	path  string
 }
 
@@ -65,9 +65,9 @@ func (m *SSTableManager) AddSSTable() *SSTable {
 	level := 0
 	nextName := fmt.Sprintf("%04d", len(m.sstables[level])+1)
 	sstable := &SSTable{
-		size:  DEFAULT_SSTABLE_SIZE,
-		level: level,
-		name:  nextName,
+		Size:  DEFAULT_SSTABLE_SIZE,
+		Level: level,
+		Name:  nextName,
 		path:  m.FilePath(nextName, level),
 	}
 	m.sstables[level] = append(m.sstables[level], sstable)

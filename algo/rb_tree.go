@@ -6,7 +6,7 @@ const (
 )
 
 type Node struct {
-	Key    int
+	Key    string
 	Value  int
 	Color  bool
 	Left   *Node
@@ -15,7 +15,7 @@ type Node struct {
 }
 
 type KVPair struct {
-	Key   int
+	Key   string
 	Value int
 }
 
@@ -24,7 +24,7 @@ type RBTree struct {
 	NodesCount int
 }
 
-func (t *RBTree) Search(key int) *Node {
+func (t *RBTree) Search(key string) *Node {
 	n := t.Root
 	for n != nil {
 		if key < n.Key {
@@ -38,7 +38,7 @@ func (t *RBTree) Search(key int) *Node {
 	return nil
 }
 
-func (t *RBTree) Insert(key int) {
+func (t *RBTree) Insert(key string) {
 	newNode := &Node{Key: key, Color: RED}
 	var parent *Node
 	n := t.Root
@@ -169,4 +169,30 @@ func (tree *RBTree) StreamInorderTraversal() <-chan KVPair {
 	}()
 
 	return sortedOut
+}
+
+func (tree *RBTree) First() *KVPair {
+	if tree.Root == nil {
+		return nil
+	}
+
+	return &KVPair{Key: tree.Root.Key, Value: tree.Root.Value}
+}
+
+func getLast(node *Node) *Node {
+	if node == nil {
+		return nil
+	}
+	for node.Right != nil {
+		node = node.Right
+	}
+	return node
+}
+
+func (tree *RBTree) Last() *KVPair {
+	if tree.Root == nil {
+		return nil
+	}
+	lastNode := getLast(tree.Root)
+	return &KVPair{Key: lastNode.Key, Value: lastNode.Value}
 }
