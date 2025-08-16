@@ -1,5 +1,7 @@
 package core
 
+import "fmt"
+
 type LSMTStorage struct {
 	memTableThreshold int // Max size of entries in the memtable before flushing to SSTables
 	seqNumber         int
@@ -40,7 +42,6 @@ func (s *LSMTStorage) Write(key string, value string) error {
 		return err
 	}
 
-	// s.sparseIndex.Update(key, )
 	s.updateSeq()
 
 	// TODO: Move as a background task
@@ -48,6 +49,11 @@ func (s *LSMTStorage) Write(key string, value string) error {
 		sstable := s.ssTableManager.AddSSTable()
 		if err := s.memTable.Flush(sstable); err != nil {
 			return err
+		}
+
+		// Populate blooms filter
+		for kv := range s.memTable.Iterator() {
+			sstable.BloomFilter.Add(kv.Key)
 		}
 
 		memtableHead := s.memTable.First()
@@ -61,4 +67,12 @@ func (s *LSMTStorage) Write(key string, value string) error {
 
 func (s *LSMTStorage) Compact(key string) ([]byte, error) {
 	return nil, nil
+}
+
+func (s *LSMTStorage) Read(key string) ([]byte, error) {
+	if value, err := s.memTable.Read(key); err == nil {
+		return value, nil
+	}
+
+	return nil, fmt.Errorf("key not found: %s", key)
 }

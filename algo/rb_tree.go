@@ -152,22 +152,21 @@ func NewRBTree() *RBTree {
 	}
 }
 
-func (node *Node) inorderTraversal(sortedOut chan<- KVPair) {
+func (node *Node) inorderTraversal(sortedOut chan<- *KVPair) {
 	if node != nil {
 		node.Left.inorderTraversal(sortedOut)
-		sortedOut <- KVPair{Key: node.Key, Value: node.Value}
+		sortedOut <- &KVPair{Key: node.Key, Value: node.Value}
 		node.Right.inorderTraversal(sortedOut)
 	}
 }
 
-func (tree *RBTree) StreamInorderTraversal() <-chan KVPair {
-	sortedOut := make(chan KVPair)
+func (tree *RBTree) StreamInorderTraversal() <-chan *KVPair {
+	sortedOut := make(chan *KVPair)
 
 	go func() {
 		defer close(sortedOut)
 		tree.Root.inorderTraversal(sortedOut)
 	}()
-
 	return sortedOut
 }
 

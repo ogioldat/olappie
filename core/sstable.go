@@ -4,16 +4,19 @@ import (
 	"fmt"
 	"os"
 	"path"
+
+	"github.com/ogioldat/olappie/algo"
 )
 
 const DEFAULT_SSTABLE_DIR = "../data/sstables"
 const DEFAULT_SSTABLE_SIZE = 1024 * 1024 // 1 MB
 
 type SSTable struct {
-	Size  int
-	Level int
-	Name  string
-	path  string
+	Size        int
+	Level       int
+	Name        string
+	path        string
+	BloomFilter *algo.BloomFilter
 }
 
 func (s *SSTable) Write(p []byte) (n int, err error) {
@@ -65,10 +68,11 @@ func (m *SSTableManager) AddSSTable() *SSTable {
 	level := 0
 	nextName := fmt.Sprintf("%04d", len(m.sstables[level])+1)
 	sstable := &SSTable{
-		Size:  DEFAULT_SSTABLE_SIZE,
-		Level: level,
-		Name:  nextName,
-		path:  m.FilePath(nextName, level),
+		Size:        DEFAULT_SSTABLE_SIZE,
+		Level:       level,
+		Name:        nextName,
+		path:        m.FilePath(nextName, level),
+		BloomFilter: algo.NewBloomFilter(1000000),
 	}
 	m.sstables[level] = append(m.sstables[level], sstable)
 

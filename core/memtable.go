@@ -9,10 +9,12 @@ import (
 
 type MemTable interface {
 	Write(string, []byte) error
+	Read(string) ([]byte, error)
 	Flush(io.Writer) error
 	Size() int
 	Last() *algo.KVPair
 	First() *algo.KVPair
+	Iterator() <-chan *algo.KVPair
 }
 
 type RBMemTable struct {
@@ -27,6 +29,11 @@ func NewRBMemTable() *RBMemTable {
 
 func (r *RBMemTable) Write(key string, value []byte) error {
 	return nil
+}
+
+func (r *RBMemTable) Read(key string) ([]byte, error) {
+	value := r.tree.Search(key)
+	return []byte(fmt.Sprint(value.Value)), nil
 }
 
 func (r *RBMemTable) Flush(w io.Writer) error {
@@ -50,4 +57,8 @@ func (r *RBMemTable) Last() *algo.KVPair {
 
 func (r *RBMemTable) First() *algo.KVPair {
 	return r.tree.First()
+}
+
+func (r *RBMemTable) Iterator() <-chan *algo.KVPair {
+	return r.tree.StreamInorderTraversal()
 }
