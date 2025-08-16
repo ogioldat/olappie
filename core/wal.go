@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-const WAL_PATH = "../data/wal.log"
+const WAL_PATH = "../data/wal/wal.log"
 
 type WAL struct {
 	file *os.File
