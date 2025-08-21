@@ -2,30 +2,65 @@ package core
 
 import "fmt"
 
-type LSMTStorage struct {
-	memTableThreshold int // Max size of entries in the memtable before flushing to SSTables
-	seqNumber         int
-	sparseIndex       SparseIndex
-	memTable          MemTable
-	ssTableManager    *SSTableManager
-	wal               *WAL
-	metadata          *Metadata
+const DEFAULT_OUTPUT_DIR = "../data/"
+
+type DB interface {
+	Read(string) ([]byte, error)
+	Write(string, []byte) error
 }
 
-func NewLSMTStorage(memTableThreshold int) *LSMTStorage {
-	wal, err := NewWAL()
+type Option func(*LSMTStorageConfig)
+
+func WithOutDir(dir string) Option {
+	return func(m *LSMTStorageConfig) {
+		m.outputDir = dir
+	}
+}
+
+func WithMemtableThreshold(th int) Option {
+	return func(m *LSMTStorageConfig) {
+		m.memTableThreshold = th
+	}
+}
+
+type LSMTStorageConfig struct {
+	memTableThreshold int // Max size of entries in the memtable before flushing to SSTables
+	outputDir         string
+}
+
+type LSMTStorage struct {
+	config         *LSMTStorageConfig
+	seqNumber      int
+	sparseIndex    SparseIndex
+	memTable       MemTable
+	ssTableManager *SSTableManager
+	wal            *WAL
+	metadata       *Metadata
+}
+
+func NewLSMTStorage(opts ...Option) *LSMTStorage {
+	config := &LSMTStorageConfig{
+		memTableThreshold: 1000,
+		outputDir:         DEFAULT_OUTPUT_DIR,
+	}
+
+	for _, opt := range opts {
+		opt(config)
+	}
+
+	wal, err := NewWAL(config)
 	if err != nil {
 		panic("failed to create WAL")
 	}
 
 	return &LSMTStorage{
-		memTableThreshold: memTableThreshold,
-		seqNumber:         0,
-		sparseIndex:       NewSparseIndex(),
-		memTable:          NewRBMemTable(),
-		ssTableManager:    NewSSTableManager(),
-		wal:               wal,
-		metadata:          NewMetadata(),
+		config:         config,
+		seqNumber:      0,
+		sparseIndex:    NewSparseIndex(),
+		memTable:       NewRBMemTable(),
+		ssTableManager: NewSSTableManager(config),
+		wal:            wal,
+		metadata:       NewMetadata(),
 	}
 }
 
@@ -33,8 +68,8 @@ func (s *LSMTStorage) updateSeq() {
 	s.seqNumber++
 }
 
-func (s *LSMTStorage) Write(key string, value string) error {
-	if err := s.wal.Log(key, value); err != nil {
+func (s *LSMTStorage) Write(key string, value []byte) error {
+	if err := s.wal.Log(key, string(value)); err != nil {
 		return err
 	}
 
@@ -45,11 +80,8 @@ func (s *LSMTStorage) Write(key string, value string) error {
 	s.updateSeq()
 
 	// TODO: Move as a background task
-	if s.memTableThreshold < s.memTable.Size() {
-		sstable := s.ssTableManager.AddSSTable()
-		if err := s.memTable.Flush(sstable); err != nil {
-			return err
-		}
+	if s.config.memTableThreshold <= s.memTable.Size() {
+		sstable := s.ssTableManager.AddSSTable(s.config)
 
 		// Populate blooms filter
 		for kv := range s.memTable.Iterator() {
@@ -59,7 +91,17 @@ func (s *LSMTStorage) Write(key string, value string) error {
 		memtableHead := s.memTable.First()
 		memtableTail := s.memTable.Last()
 
-		s.metadata.Set(sstable.Name, memtableHead.Key, memtableTail.Key)
+		s.metadata.Set(
+			sstable.Name,
+			memtableHead.Key,
+			memtableTail.Key,
+			sstable.Level,
+		)
+
+		if err := s.memTable.Flush(sstable); err != nil {
+			return err
+		}
+		s.memTable.Reset()
 	}
 
 	return nil
@@ -70,9 +112,14 @@ func (s *LSMTStorage) Compact(key string) ([]byte, error) {
 }
 
 func (s *LSMTStorage) Read(key string) ([]byte, error) {
-	if value, err := s.memTable.Read(key); err == nil {
+	if value, ok := s.memTable.Read(key); ok {
 		return value, nil
 	}
 
-	return nil, fmt.Errorf("key not found: %s", key)
+	sstable := s.ssTableManager.FindByKey(key, s.metadata)
+	if sstable == nil {
+		return nil, fmt.Errorf("sstable not found: %s", key)
+	}
+
+	return sstable.Read(key)
 }

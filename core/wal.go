@@ -3,12 +3,12 @@ package core
 import (
 	"fmt"
 	"os"
+	"path"
 )
 
-const WAL_PATH = "../data/wal/wal.log"
-
 type WAL struct {
-	file *os.File
+	file      *os.File
+	outputDir string
 }
 
 func (w *WAL) Log(key, value string) error {
@@ -17,10 +17,14 @@ func (w *WAL) Log(key, value string) error {
 	return err
 }
 
-func NewWAL() (*WAL, error) {
-	file, err := os.OpenFile(WAL_PATH, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+func NewWAL(config *LSMTStorageConfig) (*WAL, error) {
+	file, err := os.OpenFile(
+		path.Join(config.outputDir, "wal.log"),
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644,
+	)
 	if err != nil {
 		return nil, err
 	}
-	return &WAL{file: file}, nil
+
+	return &WAL{file: file, outputDir: path.Join(config.outputDir, "wal.log")}, nil
 }
