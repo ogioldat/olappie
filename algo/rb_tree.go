@@ -67,7 +67,7 @@ func (t *RBTree) Insert(key string, value []byte) {
 }
 
 func (t *RBTree) fixInsert(n *Node) {
-	for n != t.Root && n.Parent.Color == RED {
+	for n != t.Root && n.Parent.Color {
 		if n.Parent == n.Parent.Parent.Left {
 			uncle := n.Parent.Parent.Right
 			if uncle != nil && uncle.Color {
@@ -89,7 +89,7 @@ func (t *RBTree) fixInsert(n *Node) {
 			}
 		} else {
 			uncle := n.Parent.Parent.Left
-			if uncle != nil && uncle.Color == RED {
+			if uncle != nil && uncle.Color {
 				// Mirror Case 1
 				n.Parent.Color = BLACK
 				uncle.Color = BLACK

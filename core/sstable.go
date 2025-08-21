@@ -34,7 +34,7 @@ type SSTable struct {
 
 func (s *SSTable) Write(p []byte) (n int, err error) {
 	dir := path.Dir(s.Path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return 0, err
 	}
 
@@ -42,7 +42,10 @@ func (s *SSTable) Write(p []byte) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
-	defer file.Close()
+
+	if err := file.Close(); err != nil {
+		return 0, err
+	}
 
 	return file.Write(p)
 }
@@ -52,7 +55,10 @@ func (s *SSTable) Read(key string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+
+	if err := file.Close(); err != nil {
+		return nil, err
+	}
 
 	var value []byte
 	if err := gob.NewDecoder(file).Decode(&value); err != nil {
@@ -105,9 +111,7 @@ func (m *SSTableManager) findLevelSSTables(key string, level int, metadata *Meta
 
 	for _, met := range metadata.sstables {
 		if met.maxKey <= key && met.minKey >= key {
-			for _, tab := range m.sstables[level] {
-				sstables = append(sstables, tab)
-			}
+			sstables = append(sstables, m.sstables[level]...)
 		}
 	}
 	return sstables
@@ -147,18 +151,21 @@ func (m *Metadata) Flush(config LSMTStorageConfig) error {
 		)
 	}
 
-	file, err := os.OpenFile(path.Join(config.outputDir, "metadata"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(
+		path.Join(config.outputDir, "metadata"),
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
+		0o644,
+	)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 
 	_, err = file.WriteString(metadataStr)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return file.Close()
 }
 
 func (m *Metadata) Load(config LSMTStorageConfig) error {

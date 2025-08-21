@@ -1,0 +1,22 @@
+version: "2"
+run:
+  timeout: 5m
+  tests: false
+
+linters:
+  enable:
+    - govet        # wbudowany, obowiązkowy
+    - staticcheck  # zaawansowana analiza
+    # - revive       # styl i konwencje
+    - errcheck     # brak ignorowania błędów
+    - ineffassign  # nieużywane przypisania
+    # - gosec        # bezpieczeństwo
+    - unused       # nieużywane symbole
+
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+    - golines

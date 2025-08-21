@@ -20,7 +20,7 @@ func (w *WAL) Log(key, value string) error {
 func NewWAL(config *LSMTStorageConfig) (*WAL, error) {
 	file, err := os.OpenFile(
 		path.Join(config.outputDir, "wal.log"),
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644,
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644,
 	)
 	if err != nil {
 		return nil, err

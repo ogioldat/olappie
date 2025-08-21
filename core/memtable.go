@@ -29,16 +29,19 @@ func NewRBMemTable() *RBMemTable {
 	}
 }
 
-func NewFromKVPairs(kvStr string) *RBMemTable {
+func NewFromKVPairs(kvStr string) (*RBMemTable, error) {
 	memTable := NewRBMemTable()
 	pairs := strings.Split(kvStr, ",")
 	for _, kv := range pairs {
 		kvParts := strings.SplitN(kv, ":", 2)
 		if len(kvParts) == 2 {
-			memTable.Write(kvParts[0], []byte(kvParts[1]))
+			err := memTable.Write(kvParts[0], []byte(kvParts[1]))
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
-	return memTable
+	return memTable, nil
 }
 
 func (r *RBMemTable) Write(key string, value []byte) error {
@@ -56,8 +59,11 @@ func (r *RBMemTable) Read(key string) (data []byte, ok bool) {
 
 func (r *RBMemTable) Flush(w io.Writer) error {
 	for kv := range r.tree.StreamInorderTraversal() {
-		kvStr := fmt.Sprint(kv.Key) + ":" + fmt.Sprint(kv.Value) + "\n"
-		w.Write([]byte(kvStr))
+		kvStr := fmt.Sprint(kv.Key) + ":" + fmt.Sprint(string(kv.Value)) + "\n"
+
+		if _, err := w.Write([]byte(kvStr)); err != nil {
+			return err
+		}
 	}
 	return nil
 }
