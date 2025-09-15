@@ -6,6 +6,7 @@
         "memtable",
         "olappie",
         "SSTABLE",
-        "sstables"
+        "sstables",
+        "textinput"
     ]
 }
