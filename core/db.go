@@ -1,6 +1,10 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ogioldat/olappie/internal"
+)
 
 const DEFAULT_OUTPUT_DIR = "../data/"
 
@@ -70,12 +74,16 @@ func (s *LSMTStorage) updateSeq() {
 
 func (s *LSMTStorage) Write(key string, value []byte) error {
 	if err := s.wal.Log(key, string(value)); err != nil {
+		internal.Logger.Debug("WAL log failed", "key", key, "value", value, "err", err)
 		return err
 	}
 
 	if err := s.memTable.Write(key, []byte(value)); err != nil {
+		internal.Logger.Debug("Memtable write failed", "key", key, "value", value, "err", err)
 		return err
 	}
+
+	internal.Logger.Debug("Write to memtable", "key", key, "value", value)
 
 	s.updateSeq()
 
@@ -99,8 +107,10 @@ func (s *LSMTStorage) Write(key string, value []byte) error {
 		)
 
 		if err := s.memTable.Flush(sstable); err != nil {
+			internal.Logger.Debug("Memtable flush failed", "sstable", sstable.Name, "err", err)
 			return err
 		}
+		internal.Logger.Debug("Memtable flushed to SSTable", "sstable", sstable.Name)
 		s.memTable.Reset()
 	}
 
@@ -113,13 +123,24 @@ func (s *LSMTStorage) Compact(key string) ([]byte, error) {
 
 func (s *LSMTStorage) Read(key string) ([]byte, error) {
 	if value, ok := s.memTable.Read(key); ok {
+		internal.Logger.Debug("Read from memtable", "key", key, "value", value, "ok", ok)
 		return value, nil
 	}
 
 	sstable := s.ssTableManager.FindByKey(key, s.metadata)
+
 	if sstable == nil {
+		internal.Logger.Debug("Failed to find sstable", "key", key)
 		return nil, fmt.Errorf("sstable not found: %s", key)
 	}
 
-	return sstable.Read(key)
+	value, err := sstable.Read(key)
+
+	if err != nil {
+		internal.Logger.Debug("Read from sstable", "sstable", sstable.Id, "key", key, "value", value)
+	} else {
+		internal.Logger.Debug("Failed to read from sstable", "sstable", sstable.Id, "key", key, "value", value)
+	}
+
+	return value, err
 }
