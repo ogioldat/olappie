@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/ogioldat/olappie/internal"
 )
@@ -11,6 +12,7 @@ const DEFAULT_OUTPUT_DIR = "../data/"
 type DB interface {
 	Read(string) ([]byte, error)
 	Write(string, []byte) error
+	Iter(yield func(key string, value []byte) bool)
 }
 
 type Option func(*LSMTStorageConfig)
@@ -143,4 +145,30 @@ func (s *LSMTStorage) Read(key string) ([]byte, error) {
 	}
 
 	return value, err
+}
+
+func (s *LSMTStorage) Iter(yield func(key string, value []byte) bool) {
+	var keys []string
+
+	for el := range s.memTable.Iterator() {
+		keys = append(keys, el.Key)
+		if !yield(el.Key, el.Value) {
+			return
+		}
+	}
+
+	for level := range s.ssTableManager.sstables {
+		for _, sstable := range s.ssTableManager.sstables[level] {
+			for _, key := range sstable.AllKeys() {
+				if !slices.Contains(keys, key) {
+					value, err := sstable.Read(key)
+					if err == nil {
+						if !yield(key, value) {
+							return
+						}
+					}
+				}
+			}
+		}
+	}
 }

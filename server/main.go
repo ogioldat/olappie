@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ogioldat/olappie/core"
+	"github.com/ogioldat/olappie/internal"
 )
 
 type Server struct {
@@ -41,7 +42,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 	encoder := json.NewEncoder(conn)
 
-	log.Printf("Client connected: %s", conn.RemoteAddr())
+	internal.Logger.Info("Client connected", "addr", conn.RemoteAddr())
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -64,10 +65,10 @@ func (s *Server) handleConnection(conn net.Conn) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Printf("Connection error: %v", err)
+		internal.Logger.Info("Connection error", "err", err)
 	}
 
-	log.Printf("Client disconnected: %s", conn.RemoteAddr())
+	internal.Logger.Info("Client disconnected", "addr", conn.RemoteAddr())
 }
 
 func (s *Server) processRequest(req Request) Response {
@@ -96,6 +97,16 @@ func (s *Server) processRequest(req Request) Response {
 
 		return Response{Success: true}
 
+	case "LIST":
+		var keys []string
+
+		for key, value := range s.db.Iter {
+			keys = append(keys, fmt.Sprintf("%s=%s", key, string(value)))
+		}
+
+		data := strings.Join(keys, "\n")
+		return Response{Success: true, Data: data}
+
 	default:
 		return Response{Success: false, Error: "Unsupported operation: " + req.Operation}
 	}
@@ -108,12 +119,12 @@ func (s *Server) Start() error {
 	}
 	defer listener.Close()
 
-	log.Printf("Database server listening on %s", s.addr)
+	internal.Logger.Info("Database server listening", "addr", s.addr)
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Printf("Error accepting connection: %v", err)
+			internal.Logger.Info("Error accepting connection", "err", err)
 			continue
 		}
 
@@ -122,14 +133,16 @@ func (s *Server) Start() error {
 }
 
 func main() {
+	internal.InitLogger()
+
 	// Initialize the database
 	db := core.NewLSMTStorage()
 
 	// Create and start the server
 	server := NewServer(":8080", db)
 
-	log.Println("Starting database server...")
+	internal.Logger.Info("Starting database server...")
 	if err := server.Start(); err != nil {
-		log.Fatalf("Server failed: %v", err)
+		internal.Logger.Info("Server failed", "err", err)
 	}
 }

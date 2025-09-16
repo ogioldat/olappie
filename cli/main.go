@@ -47,10 +47,40 @@ type Response struct {
 
 type DBClient struct {
 	serverAddr string
+	conn       net.Conn
+	encoder    *json.Encoder
+	decoder    *json.Decoder
 }
 
 func NewDBClient(serverAddr string) *DBClient {
 	return &DBClient{serverAddr: serverAddr}
+}
+
+func (c *DBClient) Connect() error {
+	if c.conn != nil {
+		return nil
+	}
+
+	conn, err := net.Dial("tcp", c.serverAddr)
+	if err != nil {
+		return fmt.Errorf("failed to connect to server: %v", err)
+	}
+
+	c.conn = conn
+	c.encoder = json.NewEncoder(conn)
+	c.decoder = json.NewDecoder(conn)
+	return nil
+}
+
+func (c *DBClient) Disconnect() error {
+	if c.conn != nil {
+		err := c.conn.Close()
+		c.conn = nil
+		c.encoder = nil
+		c.decoder = nil
+		return err
+	}
+	return nil
 }
 
 func (c *DBClient) Read(key string) ([]byte, error) {
@@ -90,22 +120,43 @@ func (c *DBClient) Write(key string, value []byte) error {
 	return nil
 }
 
-func (c *DBClient) sendRequest(req Request) (*Response, error) {
-	conn, err := net.Dial("tcp", c.serverAddr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to server: %v", err)
+func (c *DBClient) List() (string, error) {
+	req := Request{
+		Operation: "LIST",
 	}
-	defer conn.Close()
 
-	encoder := json.NewEncoder(conn)
-	decoder := json.NewDecoder(conn)
+	resp, err := c.sendRequest(req)
+	if err != nil {
+		return "", err
+	}
 
-	if err := encoder.Encode(req); err != nil {
-		return nil, fmt.Errorf("failed to send request: %v", err)
+	if !resp.Success {
+		return "", fmt.Errorf(resp.Error)
+	}
+
+	return resp.Data, nil
+}
+
+func (c *DBClient) sendRequest(req Request) (*Response, error) {
+	if c.conn == nil {
+		if err := c.Connect(); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := c.encoder.Encode(req); err != nil {
+		c.Disconnect()
+		if err := c.Connect(); err != nil {
+			return nil, fmt.Errorf("failed to reconnect: %v", err)
+		}
+		if err := c.encoder.Encode(req); err != nil {
+			return nil, fmt.Errorf("failed to send request: %v", err)
+		}
 	}
 
 	var resp Response
-	if err := decoder.Decode(&resp); err != nil {
+	if err := c.decoder.Decode(&resp); err != nil {
+		c.Disconnect()
 		return nil, fmt.Errorf("failed to read response: %v", err)
 	}
 
@@ -121,17 +172,25 @@ type model struct {
 
 func initialModel() model {
 	ti := textinput.New()
-	ti.Placeholder = "Enter command (read <key>, write <key> <value>, help, quit)"
+	ti.Placeholder = "Enter command (read <key>, write <key> <value>, list, help, quit)"
 	ti.Focus()
 	ti.CharLimit = 156
 	ti.Width = 60
 
 	client := NewDBClient("localhost:8080")
+	if err := client.Connect(); err != nil {
+		return model{
+			textInput: ti,
+			client:    client,
+			output:    []string{errorStyle.Render(fmt.Sprintf("Failed to connect to server: %v", err))},
+			err:       err,
+		}
+	}
 
 	return model{
 		textInput: ti,
 		client:    client,
-		output:    []string{},
+		output:    []string{successStyle.Render("✓ Connected to OlappieDB server")},
 		err:       nil,
 	}
 }
@@ -153,6 +212,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textInput.SetValue("")
 			}
 		case tea.KeyCtrlC, tea.KeyEsc:
+			m.client.Disconnect()
 			return m, tea.Quit
 		}
 
@@ -174,6 +234,7 @@ func (m model) processCommand(input string) model {
 
 	switch command {
 	case "quit", "exit", "q":
+		m.client.Disconnect()
 		m.output = append(m.output, successStyle.Render("Goodbye! 👋"))
 		return m
 
@@ -182,6 +243,7 @@ func (m model) processCommand(input string) model {
 			"Available commands:",
 			"  read <key>           - Read value for a key",
 			"  write <key> <value>  - Write value to a key",
+			"  list                 - List all key-value pairs",
 			"  help                 - Show this help message",
 			"  quit                 - Exit the CLI",
 		}
@@ -213,6 +275,24 @@ func (m model) processCommand(input string) model {
 				m.output = append(m.output, errorStyle.Render(fmt.Sprintf("Error writing '%s': %v", key, err)))
 			} else {
 				m.output = append(m.output, successStyle.Render(fmt.Sprintf("✓ Wrote: %s = %s", key, value)))
+			}
+		}
+
+	case "list", "l":
+		data, err := m.client.List()
+		if err != nil {
+			m.output = append(m.output, errorStyle.Render(fmt.Sprintf("Error listing entries: %v", err)))
+		} else {
+			if data == "" {
+				m.output = append(m.output, infoStyle.Render("No entries found"))
+			} else {
+				m.output = append(m.output, successStyle.Render("All entries:"))
+				entries := strings.Split(data, "\n")
+				for _, entry := range entries {
+					if entry != "" {
+						m.output = append(m.output, fmt.Sprintf("  %s", entry))
+					}
+				}
 			}
 		}
 

@@ -35,6 +35,11 @@ type SSTable struct {
 	CreatedAt   time.Time
 }
 
+func (s *SSTable) AllKeys() []string {
+	// TODO List
+	return []string{"orange", "apple"}
+}
+
 func (s *SSTable) Write(p []byte) (n int, err error) {
 	dir := path.Dir(s.Path)
 	if err := os.MkdirAll(dir, 0o755); err != nil {

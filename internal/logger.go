@@ -6,10 +6,14 @@ import (
 	"os"
 )
 
-func NewLogger() *slog.Logger {
+var Logger *slog.Logger
+
+func InitLogger() {
 	var logLevel slog.LevelVar
 
+	debugFlag := flag.Bool("debug", false, "debug: set debug log level (default false)")
 	levelFlag := flag.String("log-level", "info", "logging level: debug, info, warn, error")
+
 	flag.Parse()
 
 	switch *levelFlag {
@@ -25,17 +29,11 @@ func NewLogger() *slog.Logger {
 		logLevel.Set(slog.LevelInfo)
 	}
 
-	debugFlag := flag.Bool("debug", false, "set debug log level")
-
 	if *debugFlag {
 		logLevel.Set(slog.LevelDebug)
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	Logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: &logLevel,
 	}))
-
-	return logger
 }
-
-var Logger = NewLogger()
