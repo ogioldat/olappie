@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ogioldat/olappie/algo"
 )
@@ -30,6 +32,7 @@ type SSTable struct {
 	Path        string
 	Id          SSTableId
 	BloomFilter *algo.BloomFilter
+	CreatedAt   time.Time
 }
 
 func (s *SSTable) Write(p []byte) (n int, err error) {
@@ -100,6 +103,7 @@ func (m *SSTableManager) AddSSTable(config *LSMTStorageConfig) *SSTable {
 		Path:        m.FilePath(nextName, level),
 		BloomFilter: algo.NewBloomFilter(1000000),
 		Id:          SSTableId(id(nextName, level)),
+		CreatedAt:   time.Now(),
 	}
 	m.sstables[level] = append(m.sstables[level], sstable)
 
@@ -108,6 +112,8 @@ func (m *SSTableManager) AddSSTable(config *LSMTStorageConfig) *SSTable {
 
 func (m *SSTableManager) findLevelSSTables(key string, level int, metadata *Metadata) []*SSTable {
 	var sstables []*SSTable
+
+	// timeOrderedSSTables := metadata.sstables
 
 	for _, met := range metadata.sstables {
 		if met.maxKey <= key && met.minKey >= key {
@@ -124,7 +130,10 @@ func (m *SSTableManager) FindByKey(key string, metadata *Metadata) *SSTable {
 		return nil
 	}
 
-	// TODO: Handle overlapping keys in sstables L0
+	sort.Slice(sstables, func(i, j int) bool {
+		return sstables[i].CreatedAt.After(sstables[j].CreatedAt)
+	})
+
 	return sstables[0]
 }
 
