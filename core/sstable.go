@@ -51,9 +51,7 @@ func (s *SSTable) Write(p []byte) (n int, err error) {
 		return 0, err
 	}
 
-	if err := file.Close(); err != nil {
-		return 0, err
-	}
+	defer file.Close()
 
 	return file.Write(p)
 }

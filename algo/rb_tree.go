@@ -1,22 +1,24 @@
 package algo
 
+import "time"
+
 const (
 	RED   = true
 	BLACK = false
 )
 
-type Node struct {
-	Key    string
-	Value  []byte
-	Color  bool
-	Left   *Node
-	Right  *Node
-	Parent *Node
+type metadata struct {
+	Timestamp time.Time
 }
 
-type KVPair struct {
-	Key   string
-	Value []byte
+type Node struct {
+	Key      string
+	Value    []byte
+	Color    bool
+	Left     *Node
+	Right    *Node
+	Parent   *Node
+	Metadata metadata
 }
 
 type RBTree struct {
@@ -39,7 +41,11 @@ func (t *RBTree) Search(key string) *Node {
 }
 
 func (t *RBTree) Insert(key string, value []byte) {
-	newNode := &Node{Key: key, Color: RED, Value: value}
+	newNode := &Node{
+		Key: key, Color: RED,
+		Value:    value,
+		Metadata: metadata{Timestamp: time.Now()},
+	}
 	var parent *Node
 	n := t.Root
 
@@ -154,16 +160,16 @@ func NewRBTree() *RBTree {
 	}
 }
 
-func (node *Node) inorderTraversal(sortedOut chan<- *KVPair) {
+func (node *Node) inorderTraversal(sortedOut chan<- *Node) {
 	if node != nil {
 		node.Left.inorderTraversal(sortedOut)
-		sortedOut <- &KVPair{Key: node.Key, Value: node.Value}
+		sortedOut <- node
 		node.Right.inorderTraversal(sortedOut)
 	}
 }
 
-func (tree *RBTree) StreamInorderTraversal() <-chan *KVPair {
-	sortedOut := make(chan *KVPair)
+func (tree *RBTree) StreamInorderTraversal() <-chan *Node {
+	sortedOut := make(chan *Node)
 
 	go func() {
 		defer close(sortedOut)
@@ -183,12 +189,11 @@ func getFirst(node *Node) *Node {
 	return node
 }
 
-func (tree *RBTree) First() *KVPair {
+func (tree *RBTree) First() *Node {
 	if tree.Root == nil {
 		return nil
 	}
-	firstNode := getFirst(tree.Root)
-	return &KVPair{Key: firstNode.Key, Value: firstNode.Value}
+	return getFirst(tree.Root)
 }
 
 func getLast(node *Node) *Node {
@@ -201,10 +206,9 @@ func getLast(node *Node) *Node {
 	return node
 }
 
-func (tree *RBTree) Last() *KVPair {
+func (tree *RBTree) Last() *Node {
 	if tree.Root == nil {
 		return nil
 	}
-	lastNode := getLast(tree.Root)
-	return &KVPair{Key: lastNode.Key, Value: lastNode.Value}
+	return getLast(tree.Root)
 }

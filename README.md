@@ -8,4 +8,10 @@ Basic flow
 
 ![SSTable Diagram](https://www.scylladb.com/wp-content/uploads/sstable-diagram.png)
 
-*Source: [ScyllaDB Blog](https://www.scylladb.com/2019/09/17/what-the-sstable/)* 
+*Source: [ScyllaDB Blog](https://www.scylladb.com/2019/09/17/what-the-sstable/)*
+
+## SSTable structure
+
+[key1, value1, timestamp1]
+[key2, value2, timestamp2]
+...

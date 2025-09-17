@@ -80,7 +80,7 @@ func (s *LSMTStorage) Write(key string, value []byte) error {
 		return err
 	}
 
-	if err := s.memTable.Write(key, []byte(value)); err != nil {
+	if err := s.memTable.Append(key, []byte(value)); err != nil {
 		internal.Logger.Debug("Memtable write failed", "key", key, "value", value, "err", err)
 		return err
 	}

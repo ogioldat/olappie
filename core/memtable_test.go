@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,11 +20,11 @@ func TestLoadFromKV(t *testing.T) {
 func TestRBMemTableWrite(t *testing.T) {
 	memTable := NewRBMemTable()
 
-	err := memTable.Write("key1", []byte("value1"))
+	err := memTable.Append("key1", []byte("value1"))
 	assert.NoError(t, err)
 	assert.Equal(t, 1, memTable.Size())
 
-	err = memTable.Write("key2", []byte("value2"))
+	err = memTable.Append("key2", []byte("value2"))
 	assert.NoError(t, err)
 	assert.Equal(t, 2, memTable.Size())
 }
@@ -31,7 +32,7 @@ func TestRBMemTableWrite(t *testing.T) {
 func TestRBMemTableRead(t *testing.T) {
 	memTable := NewRBMemTable()
 
-	memTable.Write("test_key", []byte("test_value"))
+	memTable.Append("test_key", []byte("test_value"))
 
 	value, ok := memTable.Read("test_key")
 	assert.True(t, ok)
@@ -44,8 +45,8 @@ func TestRBMemTableRead(t *testing.T) {
 func TestRBMemTableReset(t *testing.T) {
 	memTable := NewRBMemTable()
 
-	memTable.Write("key1", []byte("value1"))
-	memTable.Write("key2", []byte("value2"))
+	memTable.Append("key1", []byte("value1"))
+	memTable.Append("key2", []byte("value2"))
 	assert.Equal(t, 2, memTable.Size())
 
 	memTable.Reset()
@@ -58,9 +59,9 @@ func TestRBMemTableReset(t *testing.T) {
 func TestRBMemTableFirstLast(t *testing.T) {
 	memTable := NewRBMemTable()
 
-	memTable.Write("b", []byte("value_b"))
-	memTable.Write("a", []byte("value_a"))
-	memTable.Write("c", []byte("value_c"))
+	memTable.Append("b", []byte("value_b"))
+	memTable.Append("a", []byte("value_a"))
+	memTable.Append("c", []byte("value_c"))
 
 	first := memTable.First()
 	assert.Equal(t, "a", first.Key)
@@ -74,9 +75,9 @@ func TestRBMemTableFirstLast(t *testing.T) {
 func TestRBMemTableIterator(t *testing.T) {
 	memTable := NewRBMemTable()
 
-	memTable.Write("b", []byte("value_b"))
-	memTable.Write("a", []byte("value_a"))
-	memTable.Write("c", []byte("value_c"))
+	memTable.Append("b", []byte("value_b"))
+	memTable.Append("a", []byte("value_a"))
+	memTable.Append("c", []byte("value_c"))
 
 	var keys []string
 	var values [][]byte
@@ -109,11 +110,25 @@ func TestNewFromKVPairsEmpty(t *testing.T) {
 func TestRBMemTableOverwrite(t *testing.T) {
 	memTable := NewRBMemTable()
 
-	memTable.Write("key1", []byte("value1"))
-	memTable.Write("key1", []byte("value1_updated"))
+	memTable.Append("key1", []byte("value1"))
+	memTable.Append("key1", []byte("value1_updated"))
 
 	value, ok := memTable.Read("key1")
 	assert.True(t, ok)
 	assert.Equal(t, []byte("value1_updated"), value)
 	assert.Equal(t, 1, memTable.Size())
+}
+
+func TestFlushMemtable(t *testing.T) {
+	memTable := NewRBMemTable()
+	var buf bytes.Buffer
+
+	memTable.Append("key1", []byte("value1"))
+	memTable.Append("key2", []byte("value2"))
+
+	err := memTable.Flush(&buf)
+
+	assert.NoError(t, err)
+	expectedData := []byte("key1,value1\nkey2,value2\n")
+	assert.Equal(t, expectedData, buf.Bytes())
 }
