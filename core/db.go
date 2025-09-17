@@ -2,12 +2,11 @@ package core
 
 import (
 	"fmt"
+	"os"
 	"slices"
 
 	"github.com/ogioldat/olappie/internal"
 )
-
-const DEFAULT_OUTPUT_DIR = "../data/"
 
 type DB interface {
 	Read(string) ([]byte, error)
@@ -45,9 +44,14 @@ type LSMTStorage struct {
 }
 
 func NewLSMTStorage(opts ...Option) *LSMTStorage {
+	var outputDir = os.Getenv("OLAPPIE_DATA_DIR")
+	if outputDir == "" {
+		panic("OLAPPIE_DATA_DIR environment variable is not set")
+	}
+
 	config := &LSMTStorageConfig{
 		memTableThreshold: 1000,
-		outputDir:         DEFAULT_OUTPUT_DIR,
+		outputDir:         outputDir,
 	}
 
 	for _, opt := range opts {

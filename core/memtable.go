@@ -38,8 +38,8 @@ func NewRBMemTable() *RBMemTable {
 
 func NewFromKVPairs(kvStr string) (*RBMemTable, error) {
 	memTable := NewRBMemTable()
-	pairs := strings.SplitSeq(kvStr, ",")
-	for kv := range pairs {
+	pairs := strings.Split(kvStr, ",")
+	for _, kv := range pairs {
 		kvParts := strings.SplitN(kv, ":", 2)
 		if len(kvParts) == 2 {
 			err := memTable.Append(kvParts[0], []byte(kvParts[1]))

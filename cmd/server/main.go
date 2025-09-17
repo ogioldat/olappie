@@ -8,6 +8,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/joho/godotenv"
 	"github.com/ogioldat/olappie/core"
 	"github.com/ogioldat/olappie/internal"
 )
@@ -133,6 +134,11 @@ func (s *Server) Start() error {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	internal.InitLogger()
 
 	// Initialize the database

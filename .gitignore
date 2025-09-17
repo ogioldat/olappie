@@ -3,3 +3,4 @@ var
 .log
 data
 .claude
+.env
