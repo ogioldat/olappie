@@ -4,3 +4,4 @@ var
 data
 .claude
 .env
+node_modules

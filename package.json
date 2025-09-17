@@ -1,0 +1,16 @@
+{
+  "name": "olappie",
+  "version": "1.0.0",
+  "description": "An experimental write intensive, simplified, OLAP DB engine",
+  "packageManager": "pnpm@8.14.3",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "author": "ogioldat",
+  "license": "MIT",
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7"
+  }
+}
