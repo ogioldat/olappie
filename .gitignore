@@ -1,7 +1,6 @@
-*.sst
 var
-.log
-data
+data/sstables
+data/wal
 .claude
 .env
 node_modules

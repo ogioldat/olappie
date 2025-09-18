@@ -6,33 +6,22 @@ import (
 	"os"
 	"path"
 	"sort"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/ogioldat/olappie/algo"
 )
 
-type MetadataSStableEntry struct {
-	minKey string
-	maxKey string
-	level  int
-}
-
-type Metadata struct {
-	sstables map[SSTableId]MetadataSStableEntry
-}
-
 type SSTableId string
 
 type SSTable struct {
-	Size        int
 	Level       int
 	Name        string
 	Path        string
 	Id          SSTableId
 	BloomFilter *algo.BloomFilter
+	SparseIndex *SparseIndex
 	CreatedAt   time.Time
+	seqNumber   int
 }
 
 func (s *SSTable) AllKeys() []string {
@@ -77,12 +66,14 @@ func (s *SSTable) Read(key string) ([]byte, error) {
 type SSTableManager struct {
 	sstables  map[int][]*SSTable
 	outputDir string
+	seqNumber int
 }
 
 func NewSSTableManager(config *LSMTStorageConfig) *SSTableManager {
 	manager := &SSTableManager{
 		sstables:  make(map[int][]*SSTable),
 		outputDir: path.Join(config.outputDir, "sstables"),
+		seqNumber: 0,
 	}
 
 	return manager
@@ -100,107 +91,40 @@ func (m *SSTableManager) AddSSTable(config *LSMTStorageConfig) *SSTable {
 	level := 0
 	nextName := fmt.Sprintf("%04d", len(m.sstables[level])+1)
 	sstable := &SSTable{
-		Size:        0,
 		Level:       level,
 		Name:        nextName,
 		Path:        m.FilePath(nextName, level),
-		BloomFilter: algo.NewBloomFilter(1000000),
+		BloomFilter: algo.NewBloomFilter(config.sstableBloomFilterSize),
 		Id:          SSTableId(id(nextName, level)),
 		CreatedAt:   time.Now(),
+		seqNumber:   m.seqNumber,
+		SparseIndex: NewSparseIndex(),
 	}
 	m.sstables[level] = append(m.sstables[level], sstable)
+	m.seqNumber++
 
 	return sstable
 }
 
-func (m *SSTableManager) findLevelSSTables(key string, level int, metadata *Metadata) []*SSTable {
+func (m *SSTableManager) FindByKey(key string) *SSTable {
+	// Find most recent SSTable from level 0
+	// TODO: Support multiple levels
+	level := 0
 	var sstables []*SSTable
 
-	// timeOrderedSSTables := metadata.sstables
-
-	for _, met := range metadata.sstables {
-		if met.maxKey <= key && met.minKey >= key {
-			sstables = append(sstables, m.sstables[level]...)
+	for _, sstable := range m.sstables[level] {
+		if sstable.BloomFilter.Contains(key) {
+			sstables = append(sstables, sstable)
 		}
 	}
-	return sstables
-}
-
-func (m *SSTableManager) FindByKey(key string, metadata *Metadata) *SSTable {
-	sstables := m.findLevelSSTables(key, 0, metadata)
 
 	if len(sstables) == 0 {
 		return nil
 	}
 
 	sort.Slice(sstables, func(i, j int) bool {
-		return sstables[i].CreatedAt.After(sstables[j].CreatedAt)
+		return sstables[i].seqNumber > sstables[j].seqNumber
 	})
 
 	return sstables[0]
-}
-
-func NewMetadata() *Metadata {
-	return &Metadata{
-		sstables: make(map[SSTableId]MetadataSStableEntry),
-	}
-}
-
-func (m *Metadata) Set(tableName string, minKey string, maxKey string, level int) {
-	k := SSTableId(tableName)
-	m.sstables[k] = MetadataSStableEntry{
-		minKey: minKey,
-		maxKey: maxKey,
-		level:  level,
-	}
-}
-
-func (m *Metadata) Flush(config LSMTStorageConfig) error {
-	metadataStr := ""
-	for tableName, entry := range m.sstables {
-		metadataStr += fmt.Sprintf(
-			"%s %s %s\n", tableName, entry.minKey, entry.maxKey,
-		)
-	}
-
-	file, err := os.OpenFile(
-		path.Join(config.outputDir, "metadata"),
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
-		0o644,
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = file.WriteString(metadataStr)
-	if err != nil {
-		return err
-	}
-
-	return file.Close()
-}
-
-func (m *Metadata) Load(config LSMTStorageConfig) error {
-	dat, err := os.ReadFile(path.Join(config.outputDir, "metadata"))
-	if err != nil {
-		return nil
-	}
-	metadata := NewMetadata()
-	lines := strings.Split(string(dat), "\n")
-
-	for _, line := range lines {
-		parts := strings.Fields(line)
-		if len(parts) != 4 {
-			continue
-		}
-		level, err := strconv.Atoi(parts[3])
-		if err != nil {
-			continue
-		}
-		metadata.Set(parts[0], parts[1], parts[2], level)
-	}
-
-	m.sstables = metadata.sstables
-
-	return nil
 }

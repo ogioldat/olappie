@@ -18,13 +18,14 @@ func (w *WAL) Log(key, value string) error {
 }
 
 func NewWAL(config *LSMTStorageConfig) (*WAL, error) {
-	file, err := os.OpenFile(
-		path.Join(config.outputDir, "wal.log"),
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644,
-	)
+	walDir := path.Join(config.outputDir, "wal")
+	if err := os.MkdirAll(walDir, 0755); err != nil {
+		return nil, err
+	}
+	walPath := path.Join(walDir, "wal.log")
+	file, err := os.Create(walPath)
 	if err != nil {
 		return nil, err
 	}
-
-	return &WAL{file: file, outputDir: path.Join(config.outputDir, "wal.log")}, nil
+	return &WAL{file: file, outputDir: walDir}, nil
 }

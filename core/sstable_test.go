@@ -100,62 +100,6 @@ func TestSSTableBloomFilter(t *testing.T) {
 	assert.False(t, sstable.BloomFilter.Contains("non_existent"))
 }
 
-func TestMetadataSet(t *testing.T) {
-	metadata := NewMetadata()
-
-	metadata.Set("table1", "a", "z", 0)
-	metadata.Set("table2", "m", "p", 1)
-
-	assert.Equal(t, 2, len(metadata.sstables))
-	
-	entry1 := metadata.sstables[SSTableId("table1")]
-	assert.Equal(t, "a", entry1.minKey)
-	assert.Equal(t, "z", entry1.maxKey)
-	assert.Equal(t, 0, entry1.level)
-
-	entry2 := metadata.sstables[SSTableId("table2")]
-	assert.Equal(t, "m", entry2.minKey)
-	assert.Equal(t, "p", entry2.maxKey)
-	assert.Equal(t, 1, entry2.level)
-}
-
-func TestMetadataFlushAndLoad(t *testing.T) {
-	tempDir := t.TempDir()
-	cfg := LSMTStorageConfig{outputDir: tempDir}
-
-	metadata := NewMetadata()
-	metadata.Set("table1", "a", "z", 0)
-	metadata.Set("table2", "m", "p", 1)
-
-	err := metadata.Flush(cfg)
-	assert.NoError(t, err)
-
-	metadataFile := fmt.Sprintf("%s/metadata", tempDir)
-	assert.FileExists(t, metadataFile)
-
-	newMetadata := NewMetadata()
-	err = newMetadata.Load(cfg)
-	assert.NoError(t, err)
-
-	assert.Equal(t, 2, len(newMetadata.sstables))
-}
-
-func TestSSTableManagerFindByKey(t *testing.T) {
-	tempDir := t.TempDir()
-	cfg := &LSMTStorageConfig{outputDir: tempDir}
-	manager := NewSSTableManager(cfg)
-	metadata := NewMetadata()
-
-	sstable := manager.AddSSTable(cfg)
-	metadata.Set(sstable.Name, "a", "z", 0)
-
-	found := manager.FindByKey("m", metadata)
-	assert.Nil(t, found)
-
-	found = manager.FindByKey("nonexistent", metadata)
-	assert.Nil(t, found)
-}
-
 func TestSSTableId(t *testing.T) {
 	tempDir := t.TempDir()
 	cfg := &LSMTStorageConfig{outputDir: tempDir}

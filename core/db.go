@@ -22,6 +22,12 @@ func WithOutDir(dir string) Option {
 	}
 }
 
+func WithSSTableBloomFilterSize(size int) Option {
+	return func(m *LSMTStorageConfig) {
+		m.sstableBloomFilterSize = size
+	}
+}
+
 func WithMemtableThreshold(th int) Option {
 	return func(m *LSMTStorageConfig) {
 		m.memTableThreshold = th
@@ -29,18 +35,17 @@ func WithMemtableThreshold(th int) Option {
 }
 
 type LSMTStorageConfig struct {
-	memTableThreshold int // Max size of entries in the memtable before flushing to SSTables
-	outputDir         string
+	memTableThreshold      int // Max size of entries in the memtable before flushing to SSTables
+	outputDir              string
+	sstableBloomFilterSize int
 }
 
 type LSMTStorage struct {
 	config         *LSMTStorageConfig
 	seqNumber      int
-	sparseIndex    SparseIndex
 	memTable       MemTable
 	ssTableManager *SSTableManager
 	wal            *WAL
-	metadata       *Metadata
 }
 
 func NewLSMTStorage(opts ...Option) *LSMTStorage {
@@ -50,8 +55,9 @@ func NewLSMTStorage(opts ...Option) *LSMTStorage {
 	}
 
 	config := &LSMTStorageConfig{
-		memTableThreshold: 1000,
-		outputDir:         outputDir,
+		memTableThreshold:      1000,
+		outputDir:              outputDir,
+		sstableBloomFilterSize: 10000,
 	}
 
 	for _, opt := range opts {
@@ -60,17 +66,15 @@ func NewLSMTStorage(opts ...Option) *LSMTStorage {
 
 	wal, err := NewWAL(config)
 	if err != nil {
-		panic("failed to create WAL")
+		panic(fmt.Sprintf("failed to create WAL: %v", err))
 	}
 
 	return &LSMTStorage{
 		config:         config,
 		seqNumber:      0,
-		sparseIndex:    NewSparseIndex(),
 		memTable:       NewRBMemTable(),
 		ssTableManager: NewSSTableManager(config),
 		wal:            wal,
-		metadata:       NewMetadata(),
 	}
 }
 
@@ -79,7 +83,9 @@ func (s *LSMTStorage) updateSeq() {
 }
 
 func (s *LSMTStorage) Write(key string, value []byte) error {
-	if err := s.wal.Log(key, string(value)); err != nil {
+	err := s.wal.Log(key, string(value))
+
+	if err != nil {
 		internal.Logger.Debug("WAL log failed", "key", key, "value", value, "err", err)
 		return err
 	}
@@ -102,16 +108,6 @@ func (s *LSMTStorage) Write(key string, value []byte) error {
 			sstable.BloomFilter.Add(kv.Key)
 		}
 
-		memtableHead := s.memTable.First()
-		memtableTail := s.memTable.Last()
-
-		s.metadata.Set(
-			sstable.Name,
-			memtableHead.Key,
-			memtableTail.Key,
-			sstable.Level,
-		)
-
 		if err := s.memTable.Flush(sstable); err != nil {
 			internal.Logger.Debug("Memtable flush failed", "sstable", sstable.Name, "err", err)
 			return err
@@ -133,7 +129,7 @@ func (s *LSMTStorage) Read(key string) ([]byte, error) {
 		return value, nil
 	}
 
-	sstable := s.ssTableManager.FindByKey(key, s.metadata)
+	sstable := s.ssTableManager.FindByKey(key)
 
 	if sstable == nil {
 		internal.Logger.Debug("Failed to find sstable", "key", key)
