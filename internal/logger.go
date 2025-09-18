@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-var Logger *slog.Logger
+var Logger *slog.Logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 func InitLogger() {
 	var logLevel slog.LevelVar
