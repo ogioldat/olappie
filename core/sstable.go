@@ -94,7 +94,7 @@ func (m *SSTableManager) AddSSTable(config *LSMTStorageConfig) *SSTable {
 		Level:       level,
 		Name:        nextName,
 		Path:        m.FilePath(nextName, level),
-		BloomFilter: algo.NewBloomFilter(config.sstableBloomFilterSize),
+		BloomFilter: algo.NewEmptyBloomFilter(config.sstableBloomFilterSize),
 		Id:          SSTableId(id(nextName, level)),
 		CreatedAt:   time.Now(),
 		seqNumber:   m.seqNumber,

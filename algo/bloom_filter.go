@@ -9,7 +9,7 @@ type BloomFilter struct {
 	size int
 }
 
-func NewBloomFilter(size int) *BloomFilter {
+func NewEmptyBloomFilter(size int) *BloomFilter {
 	return &BloomFilter{
 		bits: make([]bool, size),
 		size: size,
@@ -44,4 +44,16 @@ func (bf *BloomFilter) Contains(item string) bool {
 	return bf.bits[bf.hash1(item)] &&
 		bf.bits[bf.hash2(item)] &&
 		bf.bits[bf.hash3(item)]
+}
+
+func (bf *BloomFilter) String() string {
+	result := ""
+	for _, bit := range bf.bits {
+		if bit {
+			result += "1"
+		} else {
+			result += "0"
+		}
+	}
+	return result
 }
