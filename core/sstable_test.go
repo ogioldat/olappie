@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,28 +32,6 @@ func TestAddManySSTables(t *testing.T) {
 	manager.AddSSTable(cfg)
 
 	assert.Equal(t, 4, len(manager.sstables[0]))
-}
-
-func TestSSTableWrite(t *testing.T) {
-	tempDir := t.TempDir()
-	cfg := &LSMTStorageConfig{outputDir: tempDir}
-
-	manager := NewSSTableManager(cfg)
-
-	manager.AddSSTable(cfg)
-	manager.AddSSTable(cfg)
-
-	sstable := manager.sstables[0][0]
-	data := []byte("Hello, SSTable!")
-
-	_, err := sstable.Write(data)
-
-	filepath := fmt.Sprintf("%s/sstables/level_0/0001.sst", tempDir)
-
-	assert.NoError(t, err)
-	assert.FileExists(t, filepath)
-	content, _ := os.ReadFile(filepath)
-	assert.Equal(t, data, content)
 }
 
 func TestSSTableManagerFilePath(t *testing.T) {

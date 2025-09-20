@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/ogioldat/olappie/algo"
@@ -11,19 +10,11 @@ import (
 type MemTable interface {
 	Append(string, []byte) error
 	Read(string) (data []byte, ok bool)
-	Flush(io.Writer) error
 	Reset()
 	Size() int
 	Last() *algo.Node
 	First() *algo.Node
-	Serialize(SerializableNode) ([]byte, error)
 	Iterator() <-chan *algo.Node
-}
-
-type SerializableNode struct {
-	Key       string
-	Value     []byte
-	Timestamp int64
 }
 
 type RBMemTable struct {
@@ -62,32 +53,6 @@ func (r *RBMemTable) Read(key string) (data []byte, ok bool) {
 		return fmt.Append(nil, value.Value), true
 	}
 	return nil, false
-}
-
-func (r *RBMemTable) Serialize(data SerializableNode) ([]byte, error) {
-	return fmt.Appendf(nil, "%s,%s,%d\n", data.Key, data.Value, data.Timestamp), nil
-}
-
-func (r *RBMemTable) Flush(w io.Writer) error {
-	serializedData := []byte{}
-
-	for node := range r.tree.StreamInorderTraversal() {
-		serializedNode, err := r.Serialize(SerializableNode{
-			Key:       node.Key,
-			Value:     node.Value,
-			Timestamp: node.Metadata.Timestamp.Unix(),
-		})
-		if err != nil {
-			return err
-		}
-		serializedData = append(serializedData, serializedNode...)
-	}
-
-	if _, err := w.Write(serializedData); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (r *RBMemTable) Reset() {

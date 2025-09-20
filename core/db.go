@@ -106,9 +106,26 @@ func (s *LSMTStorage) Write(key string, value []byte) error {
 		// Populate blooms filter
 		for kv := range s.memTable.Iterator() {
 			sstable.BloomFilter.Add(kv.Key)
+			serializedDataNode, err := s.ssTableManager.serializer.SerializeDataNode(
+				Serializable{
+					Key:       kv.Key,
+					Value:     kv.Value,
+					Timestamp: kv.Metadata.Timestamp.Unix(),
+					Tombstone: false,
+				},
+			)
+
+			if err != nil {
+				internal.Logger.Debug("Failed to serialize data node", "key", kv.Key, "value", kv.Value, "err", err)
+				return err
+			}
+
+			valueOffset := len(serializedDataNode)
+
+			sstable.SparseIndex.Update(SparseIndexKey(kv.Key), SparseIndexOffset(valueOffset))
 		}
 
-		if err := s.memTable.Flush(sstable); err != nil {
+		if err := s.ssTableManager.Flush(sstable, s.memTable); err != nil {
 			internal.Logger.Debug("Memtable flush failed", "sstable", sstable.Name, "err", err)
 			return err
 		}

@@ -6,12 +6,36 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/ogioldat/olappie/algo"
 )
 
 type SSTableId string
+
+type SSTableFile []byte
+
+type Serializable struct {
+	Key       string
+	Value     []byte
+	Timestamp int64
+	Tombstone bool
+}
+
+type SSTableSerializer interface {
+	Serialize(sstable SSTable, ser []Serializable) (SSTableFile, error)
+	SerializeDataNode(node Serializable) (string, error)
+}
+
+type StandardSSTableSerializer struct{}
+
+type SSTableManager struct {
+	sstables   map[int][]*SSTable
+	outputDir  string
+	seqNumber  int
+	serializer SSTableSerializer
+}
 
 type SSTable struct {
 	Level       int
@@ -27,22 +51,6 @@ type SSTable struct {
 func (s *SSTable) AllKeys() []string {
 	// TODO List
 	return []string{"orange", "apple"}
-}
-
-func (s *SSTable) Write(p []byte) (n int, err error) {
-	dir := path.Dir(s.Path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return 0, err
-	}
-
-	file, err := os.Create(s.Path)
-	if err != nil {
-		return 0, err
-	}
-
-	defer file.Close()
-
-	return file.Write(p)
 }
 
 func (s *SSTable) Read(key string) ([]byte, error) {
@@ -63,17 +71,19 @@ func (s *SSTable) Read(key string) ([]byte, error) {
 	return value, nil
 }
 
-type SSTableManager struct {
-	sstables  map[int][]*SSTable
-	outputDir string
-	seqNumber int
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 func NewSSTableManager(config *LSMTStorageConfig) *SSTableManager {
 	manager := &SSTableManager{
-		sstables:  make(map[int][]*SSTable),
-		outputDir: path.Join(config.outputDir, "sstables"),
-		seqNumber: 0,
+		sstables:   make(map[int][]*SSTable),
+		outputDir:  path.Join(config.outputDir, "sstables"),
+		seqNumber:  0,
+		serializer: &StandardSSTableSerializer{},
 	}
 
 	return manager
@@ -106,6 +116,39 @@ func (m *SSTableManager) AddSSTable(config *LSMTStorageConfig) *SSTable {
 	return sstable
 }
 
+func (m *SSTableManager) Flush(s *SSTable, memtable MemTable) error {
+	dir := path.Dir(s.Path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+
+	file, err := os.Create(s.Path)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	serializables := []Serializable{}
+	for kv := range memtable.Iterator() {
+		serializables = append(serializables, Serializable{
+			Key:       kv.Key,
+			Value:     kv.Value,
+			Timestamp: kv.Metadata.Timestamp.Unix(),
+			Tombstone: false,
+		})
+	}
+
+	serialized, err := m.serializer.Serialize(*s, serializables)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write(serialized)
+
+	return err
+}
+
 func (m *SSTableManager) FindByKey(key string) *SSTable {
 	// Find most recent SSTable from level 0
 	// TODO: Support multiple levels
@@ -127,4 +170,35 @@ func (m *SSTableManager) FindByKey(key string) *SSTable {
 	})
 
 	return sstables[0]
+}
+
+func (s *StandardSSTableSerializer) Serialize(sstable SSTable, ser []Serializable) (SSTableFile, error) {
+	bloomFilterStr := sstable.BloomFilter.String()
+	sparseIndexStr := sstable.SparseIndex.String()
+
+	var dataBlock []string
+
+	for _, node := range ser {
+		serializedNode, err := s.SerializeDataNode(node)
+		if err != nil {
+			return nil, err
+		}
+		dataBlock = append(dataBlock, serializedNode)
+	}
+
+	return []byte(bloomFilterStr + "\n" + sparseIndexStr + "\n" + strings.Join(dataBlock, ",") + "\n"), nil
+}
+
+func (s *StandardSSTableSerializer) SerializeDataNode(node Serializable) (string, error) {
+	return fmt.Sprintf(
+			"%d %s %d %s %d %d %d %d",
+			len(node.Key), node.Key,
+			len(node.Value), node.Value,
+			8, node.Timestamp,
+			1, boolToInt(node.Tombstone)),
+		nil
+}
+
+func (s *StandardSSTableSerializer) Deserialize(data SSTableFile) ([]Serializable, error) {
+	return nil, nil
 }

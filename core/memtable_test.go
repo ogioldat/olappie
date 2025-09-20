@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -117,18 +116,4 @@ func TestRBMemTableOverwrite(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, []byte("value1_updated"), value)
 	assert.Equal(t, 1, memTable.Size())
-}
-
-func TestFlushMemtable(t *testing.T) {
-	memTable := NewRBMemTable()
-	var buf bytes.Buffer
-
-	memTable.Append("key1", []byte("value1"))
-	memTable.Append("key2", []byte("value2"))
-
-	err := memTable.Flush(&buf)
-
-	assert.NoError(t, err)
-	expectedData := []byte("key1,value1\nkey2,value2\n")
-	assert.Equal(t, expectedData, buf.Bytes())
 }
