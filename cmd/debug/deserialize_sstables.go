@@ -66,7 +66,7 @@ func (m model) scanDirectory() tea.Cmd {
 			if err != nil {
 				return err
 			}
-			if strings.HasSuffix(path, ".sst") {
+			if strings.HasSuffix(path, ".bin") {
 				sstFiles = append(sstFiles, path)
 			}
 			return nil
@@ -95,7 +95,7 @@ func (m model) processFile(path string) tea.Cmd {
 		}
 
 		textContent := formatDeserialized(deserialized)
-		outputPath := strings.TrimSuffix(path, ".sst") + ".txt"
+		outputPath := strings.TrimSuffix(path, ".bin") + ".txt"
 
 		err = os.WriteFile(outputPath, []byte(textContent), 0644)
 		if err != nil {
@@ -162,14 +162,14 @@ func (m model) View() string {
 	b.WriteString(infoStyle.Render("Working directory: " + m.sstablesDir + "\n\n"))
 
 	if m.scanning {
-		b.WriteString(progressStyle.Render("🔍 Scanning directory for .sst files..."))
+		b.WriteString(progressStyle.Render("🔍 Scanning directory for .bin files..."))
 		b.WriteString("\n\n")
 		b.WriteString(infoStyle.Render("Press Ctrl+C or 'q' to quit"))
 		return b.String()
 	}
 
 	if m.totalFiles == 0 && m.done {
-		b.WriteString(infoStyle.Render("No .sst files found in directory"))
+		b.WriteString(infoStyle.Render("No .bin files found in directory"))
 		b.WriteString("\n\n")
 		b.WriteString(infoStyle.Render("Press any key to exit"))
 		return b.String()
@@ -184,7 +184,7 @@ func (m model) View() string {
 
 	for _, proc := range m.processed {
 		if proc.success {
-			outputPath := strings.TrimSuffix(proc.path, ".sst") + ".txt"
+			outputPath := strings.TrimSuffix(proc.path, ".bin") + ".txt"
 			b.WriteString(successStyle.Render(fmt.Sprintf("✓ %s → %s", proc.path, outputPath)))
 		} else {
 			b.WriteString(errorStyle.Render(fmt.Sprintf("✗ %s: %v", proc.path, proc.error)))

@@ -39,7 +39,7 @@ func TestSSTableManagerFilePath(t *testing.T) {
 	cfg := &LSMTStorageConfig{outputDir: tempDir}
 	manager := NewSSTableManager(cfg)
 
-	expectedPath := fmt.Sprintf("%s/sstables/level_1/test.sst", tempDir)
+	expectedPath := fmt.Sprintf("%s/sstables/level_1/test.bin", tempDir)
 	actualPath := manager.FilePath("test", 1)
 	assert.Equal(t, expectedPath, actualPath)
 }

@@ -54,7 +54,7 @@ func NewSSTableManager(config *LSMTStorageConfig) *SSTableManager {
 }
 
 func (m *SSTableManager) FilePath(name string, level int) string {
-	return path.Join(m.outputDir, "level_"+fmt.Sprint(level), name+".sst")
+	return path.Join(m.outputDir, "level_"+fmt.Sprint(level), name+".bin")
 }
 
 func (m *SSTableManager) AddSSTable(config *LSMTStorageConfig) *SSTable {

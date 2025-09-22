@@ -2,7 +2,7 @@
 
 ## SSTable Binary Format
 
-Example can be found in data/examples/sstable.sst (bloom filter size 100, data block size 4KB)
+Example can be found in data/examples/sstable.bin (bloom filter size 100, data block size 4KB)
 
 ### Binary Layout (Little Endian)
 
