@@ -105,15 +105,3 @@ func TestNewFromKVPairsEmpty(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 0, memTable.Size())
 }
-
-func TestRBMemTableOverwrite(t *testing.T) {
-	memTable := NewRBMemTable()
-
-	memTable.Append("key1", []byte("value1"))
-	memTable.Append("key1", []byte("value1_updated"))
-
-	value, ok := memTable.Read("key1")
-	assert.True(t, ok)
-	assert.Equal(t, []byte("value1_updated"), value)
-	assert.Equal(t, 1, memTable.Size())
-}

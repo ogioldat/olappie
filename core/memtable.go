@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/ogioldat/olappie/algo"
@@ -50,7 +49,7 @@ func (r *RBMemTable) Append(key string, value []byte) error {
 func (r *RBMemTable) Read(key string) (data []byte, ok bool) {
 	value := r.tree.Search(key)
 	if value != nil {
-		return fmt.Append(nil, value.Value), true
+		return value.Value, true
 	}
 	return nil, false
 }

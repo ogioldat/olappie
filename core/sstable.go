@@ -1,49 +1,30 @@
 package core
 
 import (
-	"encoding/gob"
+	"bufio"
 	"fmt"
 	"os"
 	"path"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/ogioldat/olappie/algo"
 )
 
-type SSTableId string
-
-type SSTableFile []byte
-
-type Serializable struct {
-	Key       string
-	Value     []byte
-	Timestamp int64
-	Tombstone bool
-}
-
-type SSTableSerializer interface {
-	Serialize(sstable SSTable, ser []Serializable) (SSTableFile, error)
-	SerializeDataNode(node Serializable) (string, error)
-}
-
-type StandardSSTableSerializer struct{}
-
 type SSTableManager struct {
-	sstables   map[int][]*SSTable
-	outputDir  string
-	seqNumber  int
-	serializer SSTableSerializer
+	sstables     map[int][]*SSTable
+	outputDir    string
+	seqNumber    int
+	serializer   SSTableSerializer
+	deserializer SSTableDeserializer
 }
 
 type SSTable struct {
 	Level       int
 	Name        string
 	Path        string
-	Id          SSTableId
 	BloomFilter *algo.BloomFilter
-	SparseIndex *SparseIndex
+	SparseIndex *algo.SparseIndex
 	CreatedAt   time.Time
 	seqNumber   int
 }
@@ -51,24 +32,6 @@ type SSTable struct {
 func (s *SSTable) AllKeys() []string {
 	// TODO List
 	return []string{"orange", "apple"}
-}
-
-func (s *SSTable) Read(key string) ([]byte, error) {
-	file, err := os.Open(s.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := file.Close(); err != nil {
-		return nil, err
-	}
-
-	var value []byte
-	if err := gob.NewDecoder(file).Decode(&value); err != nil {
-		return nil, err
-	}
-
-	return value, nil
 }
 
 func boolToInt(b bool) int {
@@ -80,10 +43,11 @@ func boolToInt(b bool) int {
 
 func NewSSTableManager(config *LSMTStorageConfig) *SSTableManager {
 	manager := &SSTableManager{
-		sstables:   make(map[int][]*SSTable),
-		outputDir:  path.Join(config.outputDir, "sstables"),
-		seqNumber:  0,
-		serializer: &StandardSSTableSerializer{},
+		sstables:     make(map[int][]*SSTable),
+		outputDir:    path.Join(config.outputDir, "sstables"),
+		seqNumber:    0,
+		serializer:   &BinarySSTableSerializer{},
+		deserializer: &BinarySSTableDeserializer{},
 	}
 
 	return manager
@@ -91,10 +55,6 @@ func NewSSTableManager(config *LSMTStorageConfig) *SSTableManager {
 
 func (m *SSTableManager) FilePath(name string, level int) string {
 	return path.Join(m.outputDir, "level_"+fmt.Sprint(level), name+".sst")
-}
-
-func id(name string, level int) string {
-	return fmt.Sprintf("%d_%s", level, name)
 }
 
 func (m *SSTableManager) AddSSTable(config *LSMTStorageConfig) *SSTable {
@@ -105,15 +65,42 @@ func (m *SSTableManager) AddSSTable(config *LSMTStorageConfig) *SSTable {
 		Name:        nextName,
 		Path:        m.FilePath(nextName, level),
 		BloomFilter: algo.NewEmptyBloomFilter(config.sstableBloomFilterSize),
-		Id:          SSTableId(id(nextName, level)),
 		CreatedAt:   time.Now(),
 		seqNumber:   m.seqNumber,
-		SparseIndex: NewSparseIndex(),
+		SparseIndex: algo.NewSparseIndex(),
 	}
 	m.sstables[level] = append(m.sstables[level], sstable)
 	m.seqNumber++
 
 	return sstable
+}
+
+func (m *SSTableManager) Read(s *SSTable, key string) (*DBRecord, error) {
+	file, err := os.Open(s.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer file.Close()
+
+	metadataOffset := m.serializer.MetadataSize(*s.BloomFilter, *s.SparseIndex)
+
+	offset, exists := s.SparseIndex.Get(algo.SparseIndexKey(key))
+	if !exists {
+		return nil, fmt.Errorf("key not found: %s", key)
+	}
+
+	reader := bufio.NewReader(file)
+	// Advance the reader to the record's offset
+	_, err = reader.Discard(metadataOffset + int(offset))
+
+	if err != nil {
+		return nil, err
+	}
+
+	deserialized, err := m.deserializer.DeserializeRecord(reader)
+
+	return deserialized, err
 }
 
 func (m *SSTableManager) Flush(s *SSTable, memtable MemTable) error {
@@ -129,17 +116,32 @@ func (m *SSTableManager) Flush(s *SSTable, memtable MemTable) error {
 
 	defer file.Close()
 
-	serializables := []Serializable{}
+	records := []DBRecord{}
+	byteOffset := 0
+
 	for kv := range memtable.Iterator() {
-		serializables = append(serializables, Serializable{
-			Key:       kv.Key,
+		records = append(records, DBRecord{
+			Key:       DBRecordKey(kv.Key),
 			Value:     kv.Value,
-			Timestamp: kv.Metadata.Timestamp.Unix(),
+			Timestamp: DBRecordTimestamp(kv.Metadata.Timestamp.Unix()),
 			Tombstone: false,
 		})
+
+		s.BloomFilter.Add(kv.Key)
+		s.SparseIndex.Update(
+			algo.SparseIndexKey(kv.Key),
+			algo.SparseIndexOffset(byteOffset),
+		)
+
+		byteOffset += m.serializer.RecordSize(DBRecordKey(kv.Key), kv.Value)
 	}
 
-	serialized, err := m.serializer.Serialize(*s, serializables)
+	serialized, err := m.serializer.Serialize(
+		*s.BloomFilter,
+		*s.SparseIndex,
+		records,
+	)
+
 	if err != nil {
 		return err
 	}
@@ -170,35 +172,4 @@ func (m *SSTableManager) FindByKey(key string) *SSTable {
 	})
 
 	return sstables[0]
-}
-
-func (s *StandardSSTableSerializer) Serialize(sstable SSTable, ser []Serializable) (SSTableFile, error) {
-	bloomFilterStr := sstable.BloomFilter.String()
-	sparseIndexStr := sstable.SparseIndex.String()
-
-	var dataBlock []string
-
-	for _, node := range ser {
-		serializedNode, err := s.SerializeDataNode(node)
-		if err != nil {
-			return nil, err
-		}
-		dataBlock = append(dataBlock, serializedNode)
-	}
-
-	return []byte(bloomFilterStr + "\n" + sparseIndexStr + "\n" + strings.Join(dataBlock, ",") + "\n"), nil
-}
-
-func (s *StandardSSTableSerializer) SerializeDataNode(node Serializable) (string, error) {
-	return fmt.Sprintf(
-			"%d %s %d %s %d %d %d %d",
-			len(node.Key), node.Key,
-			len(node.Value), node.Value,
-			8, node.Timestamp,
-			1, boolToInt(node.Tombstone)),
-		nil
-}
-
-func (s *StandardSSTableSerializer) Deserialize(data SSTableFile) ([]Serializable, error) {
-	return nil, nil
 }

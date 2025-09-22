@@ -76,13 +76,3 @@ func TestSSTableBloomFilter(t *testing.T) {
 	assert.True(t, sstable.BloomFilter.Contains("test_key"))
 	assert.False(t, sstable.BloomFilter.Contains("non_existent"))
 }
-
-func TestSSTableId(t *testing.T) {
-	tempDir := t.TempDir()
-	cfg := &LSMTStorageConfig{outputDir: tempDir}
-	manager := NewSSTableManager(cfg)
-
-	sstable := manager.AddSSTable(cfg)
-	expectedId := SSTableId("0_0001")
-	assert.Equal(t, expectedId, sstable.Id)
-}

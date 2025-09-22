@@ -68,7 +68,7 @@ func (c *DBClient) Read(key string) ([]byte, error) {
 	}
 
 	if !resp.Success {
-		return nil, fmt.Errorf(resp.Error)
+		return nil, fmt.Errorf("%s", resp.Error)
 	}
 
 	return []byte(resp.Data), nil
@@ -87,7 +87,7 @@ func (c *DBClient) Write(key string, value []byte) error {
 	}
 
 	if !resp.Success {
-		return fmt.Errorf(resp.Error)
+		return fmt.Errorf("%s", resp.Error)
 	}
 
 	return nil
@@ -104,7 +104,7 @@ func (c *DBClient) List() (string, error) {
 	}
 
 	if !resp.Success {
-		return "", fmt.Errorf(resp.Error)
+		return "", fmt.Errorf("%s", resp.Error)
 	}
 
 	return resp.Data, nil

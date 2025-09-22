@@ -1,4 +1,4 @@
-package core
+package algo
 
 import (
 	"testing"
@@ -31,12 +31,12 @@ func TestSparseIndexUpdate(t *testing.T) {
 
 	// Test adding new key
 	si.Update("test", 42)
-	assert.Equal(t, SparseIndexOffset(42), si.index["test"], "Should store correct offset for new key")
+	assert.Equal(t, SparseIndexOffset(42), si.Index["test"], "Should store correct offset for new key")
 
 	// Test updating existing key
 	si.Update("test", 100)
-	assert.Equal(t, SparseIndexOffset(100), si.index["test"], "Should update existing key with new offset")
+	assert.Equal(t, SparseIndexOffset(100), si.Index["test"], "Should update existing key with new offset")
 
 	// Check only one entry exists
-	assert.Len(t, si.index, 1, "Should contain exactly one entry after updates")
+	assert.Len(t, si.Index, 1, "Should contain exactly one entry after updates")
 }

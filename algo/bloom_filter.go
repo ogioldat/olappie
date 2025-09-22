@@ -10,6 +10,9 @@ type BloomFilter struct {
 }
 
 func NewEmptyBloomFilter(size int) *BloomFilter {
+	if size <= 0 {
+		size = 10000 // Default size
+	}
 	return &BloomFilter{
 		bits: make([]bool, size),
 		size: size,
@@ -56,4 +59,18 @@ func (bf *BloomFilter) String() string {
 		}
 	}
 	return result
+}
+
+func (bf *BloomFilter) Bits() []bool {
+	return bf.bits
+}
+
+func NewBloomFilterFromString(data string) *BloomFilter {
+	bf := NewEmptyBloomFilter(len(data))
+	for i := 0; i < len(data); i++ {
+		if data[i] == '1' {
+			bf.bits[i] = true
+		}
+	}
+	return bf
 }

@@ -34,8 +34,8 @@ func TestDBWrite(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, db.memTable.Size())
 
-	value, ok := db.memTable.Read("test_key")
-	assert.True(t, ok)
+	value, err := db.Read("test_key")
+	assert.NoError(t, err)
 	assert.Equal(t, []byte("test_value"), value)
 }
 
@@ -86,14 +86,17 @@ func TestDBReadNonExistentKey(t *testing.T) {
 
 func TestDBMemTableFlush(t *testing.T) {
 	tempDir := t.TempDir()
-	db := NewLSMTStorage(WithOutDir(tempDir), WithMemtableThreshold(3))
+	db := NewLSMTStorage(
+		WithOutDir(tempDir),
+		WithMemtableThreshold(3),
+	)
 
 	db.Write("a", []byte("value_a"))
 	db.Write("b", []byte("value_b"))
 	assert.Equal(t, 2, db.memTable.Size())
 
 	db.Write("c", []byte("value_c"))
-	assert.Equal(t, 3, db.memTable.Size())
+	assert.Equal(t, 0, db.memTable.Size())
 
 	db.Write("d", []byte("value_d"))
 	assert.Equal(t, 1, db.memTable.Size())
