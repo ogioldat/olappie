@@ -48,7 +48,7 @@ func main() {
 
 	for i := 0; i < numRecords; i++ {
 		key := strings.ToLower(gofakeit.Word())
-		value := string(generateRandomValue(valueSize))
+		value := string(gofakeit.Sentence(rand.Intn(15)))
 
 		// Write using client
 		if err := client.Write(key, []byte(value)); err != nil {
