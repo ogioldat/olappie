@@ -1,6 +1,6 @@
 ![OLAPpie Banner](https://img.shields.io/badge/🍰_OLAPpie-A_TOY_OLAP_DB-purple?style=for-the-badge)
 
-# 🍰 OLAPpie
+# 🍰 Olappie
 
 
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat-square&logo=go)](https://golang.org/)
@@ -8,8 +8,7 @@
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square)](.)
 [![Contributions](https://img.shields.io/badge/Contributions-Welcome-orange?style=flat-square)](CONTRIBUTING.md)
 
-**OLAPpie** is an experimental OLAP database engine inspired by [ClickHouse](https://github.com/ClickHouse/ClickHouse), implementing core concepts of modern analytical databases with a focus on write performance and storage efficiency.
-
+**Olappie** is an experimental write-intensive database engine inspired by ScyllaDB.
 ## ✨ Key Features
 
 - 🚀 **LSM Tree Architecture** - Optimized for high-volume writes
@@ -134,14 +133,12 @@ go test ./...
 - [ ] **Query optimization** - Range queries and batch operations
 - [ ] **Compression support** - LZ4/Snappy compression for SSTables
 - [ ] **Metrics & monitoring** - Prometheus integration and runtime statistics
-- [ ] **Columnar storage** - Column-oriented data layout for analytics
 - [ ] **Distributed deployment** - Multi-node clustering support
 
 ---
 
 ## 📚 Inspiration & References
 
-- **[ClickHouse](https://github.com/ClickHouse/ClickHouse)** - High-performance columnar OLAP database
 - **[ScyllaDB](https://www.scylladb.com/)** - LSM tree implementation insights
 - **[RocksDB](https://rocksdb.org/)** - LSM storage engine design patterns
 
