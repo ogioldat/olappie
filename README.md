@@ -1,4 +1,4 @@
-![OLAPpie Banner](https://img.shields.io/badge/🍰_OLAPpie-A_TOY_OLAP_DB-purple?style=for-the-badge)
+![OLAPpie Banner](https://img.shields.io/badge/🍰_OLAPpie-A_TOY_NOSQL_DB-purple?style=for-the-badge)
 
 # 🍰 Olappie
 
