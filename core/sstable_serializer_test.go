@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ogioldat/olappie/algo"
+	"github.com/ogioldat/ttrunksdb/algo"
 	"github.com/stretchr/testify/assert"
 )
 

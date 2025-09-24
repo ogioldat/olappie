@@ -5,7 +5,7 @@ import (
 	"os"
 	"slices"
 
-	"github.com/ogioldat/olappie/internal"
+	"github.com/ogioldat/ttrunksdb/internal"
 )
 
 const (
@@ -70,9 +70,9 @@ type LSMTStorage struct {
 }
 
 func NewLSMTStorage(opts ...Option) *LSMTStorage {
-	var outputDir = os.Getenv("OLAPPIE_DATA_DIR")
+	var outputDir = os.Getenv("TTRUNKSDB_DATA_DIR")
 	if outputDir == "" {
-		panic("OLAPPIE_DATA_DIR environment variable is not set")
+		panic("TTRUNKSDB_DATA_DIR environment variable is not set")
 	}
 
 	config := &LSMTStorageConfig{

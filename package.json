@@ -1,5 +1,5 @@
 {
-  "name": "olappie",
+  "name": "ttrunksdb",
   "version": "1.0.0",
   "description": "An experimental write intensive, simplified, OLAP DB engine",
   "packageManager": "pnpm@8.14.3",

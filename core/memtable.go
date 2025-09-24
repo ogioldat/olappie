@@ -3,7 +3,7 @@ package core
 import (
 	"strings"
 
-	"github.com/ogioldat/olappie/algo"
+	"github.com/ogioldat/ttrunksdb/algo"
 )
 
 type MemTable interface {

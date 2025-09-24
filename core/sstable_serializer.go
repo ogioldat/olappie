@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/ogioldat/olappie/algo"
+	"github.com/ogioldat/ttrunksdb/algo"
 )
 
 type SSTableFile []byte

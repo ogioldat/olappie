@@ -10,7 +10,7 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/joho/godotenv"
-	"github.com/ogioldat/olappie/client"
+	"github.com/ogioldat/ttrunksdb/client"
 )
 
 func main() {

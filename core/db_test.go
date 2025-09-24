@@ -3,7 +3,7 @@ package core
 import (
 	"testing"
 
-	"github.com/ogioldat/olappie/tests"
+	"github.com/ogioldat/ttrunksdb/tests"
 	"github.com/stretchr/testify/assert"
 )
 

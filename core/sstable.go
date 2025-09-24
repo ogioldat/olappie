@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ogioldat/olappie/algo"
+	"github.com/ogioldat/ttrunksdb/algo"
 )
 
 type SSTableManager struct {

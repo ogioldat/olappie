@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/joho/godotenv"
-	"github.com/ogioldat/olappie/client"
+	"github.com/ogioldat/ttrunksdb/client"
 )
 
 var (
@@ -32,7 +32,6 @@ var (
 	infoStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFD700"))
 )
-
 
 type model struct {
 	textInput textinput.Model
@@ -196,7 +195,7 @@ func (m model) View() string {
 	}
 
 	// Input prompt
-	b.WriteString(promptStyle.Render("olappie> "))
+	b.WriteString(promptStyle.Render("ttrunksdb> "))
 	b.WriteString(m.textInput.View())
 	b.WriteString("\n\n")
 

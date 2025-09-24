@@ -6,7 +6,7 @@
         "LSMDB",
         "LSMT",
         "memtable",
-        "olappie",
+        "ttrunksdb",
         "SSTABLE",
         "sstables",
         "textinput"

@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	"github.com/ogioldat/olappie/core"
-	"github.com/ogioldat/olappie/internal"
+	"github.com/ogioldat/ttrunksdb/core"
+	"github.com/ogioldat/ttrunksdb/internal"
 )
 
 type Server struct {

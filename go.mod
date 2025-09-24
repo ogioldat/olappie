@@ -1,4 +1,4 @@
-module github.com/ogioldat/olappie
+module github.com/ogioldat/ttrunksdb
 
 go 1.25.0
 
