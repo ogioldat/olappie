@@ -1,6 +1,6 @@
-![OLAPpie Banner](https://img.shields.io/badge/🍰_OLAPpie-A_TOY_NOSQL_DB-purple?style=for-the-badge)
+![OLAPpie Banner](https://img.shields.io/badge/🍰_TTRUNKSDB-A_TOY_NOSQL_DB-purple?style=for-the-badge)
 
-# 🍰 Olappie
+# ttrunksdb
 
 
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat-square&logo=go)](https://golang.org/)
@@ -8,7 +8,7 @@
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square)](.)
 [![Contributions](https://img.shields.io/badge/Contributions-Welcome-orange?style=flat-square)](CONTRIBUTING.md)
 
-**Olappie** is an experimental write-intensive database engine inspired by ScyllaDB.
+**ttrunksdb** is an experimental write-intensive database engine inspired by ScyllaDB.
 ## ✨ Key Features
 
 - 🚀 **LSM Tree Architecture** - Optimized for high-volume writes
